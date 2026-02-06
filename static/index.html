@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Smart Parking Predictor | Near Real-Time</title>
+    <title>Surat AI Smart Parking | Real-Time Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link
       rel="stylesheet"
@@ -17,7 +17,7 @@
         z-index: 1;
       }
       .glass {
-        background: rgba(15, 23, 42, 0.85);
+        background: rgba(15, 23, 42, 0.9);
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.1);
       }
@@ -38,6 +38,19 @@
           box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
         }
       }
+      .custom-slider::-webkit-slider-thumb {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        background: #3b82f6;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid white;
+      }
+      /* Removes the "Leaflet" text logo from the map corner */
+      .leaflet-control-attribution {
+        display: none !important;
+      }
     </style>
   </head>
   <body class="bg-slate-950 text-white overflow-hidden font-sans">
@@ -45,37 +58,33 @@
       class="fixed top-4 right-4 z-[1000] flex items-center gap-3 px-4 py-2 rounded-full glass shadow-2xl"
     >
       <div class="w-2 h-2 rounded-full bg-green-500 pulse"></div>
-      <span class="text-[10px] font-bold tracking-widest uppercase"
-        >Near Real-Time Stream Active</span
+      <span
+        class="text-[10px] font-bold tracking-widest uppercase text-green-400"
+        >SMC-ICCC Live Feed</span
       >
     </div>
 
     <div
-      class="fixed top-0 left-0 h-full w-[400px] z-[1000] p-6 pointer-events-none flex flex-col gap-4"
+      class="fixed top-0 left-0 h-full w-[420px] z-[1000] p-6 pointer-events-none flex flex-col gap-4"
     >
       <div
         class="glass h-full w-full rounded-3xl p-6 flex flex-col pointer-events-auto shadow-2xl border-blue-500/20"
       >
-        <div class="flex items-center gap-3 mb-8">
-          <div class="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/50">
-            🅿️
-          </div>
-          <div>
-            <h1
-              class="text-xl font-black tracking-tighter text-blue-400 leading-none"
-            >
-              PARKING.AI
-            </h1>
-            <p class="text-[9px] text-slate-400 mt-1 uppercase tracking-widest">
-              Smart City Analytics Engine
-            </p>
-          </div>
+        <div class="mb-8">
+          <h1
+            class="text-xl font-black tracking-tighter text-blue-400 leading-none"
+          >
+            SURAT PARKING.AI
+          </h1>
+          <p class="text-[9px] text-slate-400 mt-1 uppercase tracking-widest">
+            Smart City Analytics Engine
+          </p>
         </div>
 
-        <div class="mb-8 p-4 bg-slate-900/50 rounded-2xl border border-white/5">
+        <div class="mb-8 p-5 bg-slate-900/50 rounded-2xl border border-white/5">
           <label
             class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-4"
-            >Time-of-Day Forecast</label
+            >AI Temporal Forecasting</label
           >
           <input
             type="range"
@@ -83,25 +92,26 @@
             min="0"
             max="23"
             value="12"
-            class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+            class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-slider"
             oninput="updatePredictions()"
           />
           <div
             class="flex justify-between text-[10px] mt-2 text-slate-500 font-mono"
           >
             <span>00:00</span>
-            <span id="current-slider-time" class="text-blue-400 font-bold"
+            <span
+              id="current-slider-time"
+              class="text-blue-400 font-bold text-lg"
               >12:00</span
             >
             <span>23:59</span>
           </div>
         </div>
 
-        <div id="info-panel" class="flex-grow space-y-4">
+        <div id="info-panel" class="flex-grow space-y-4 overflow-y-auto pr-2">
           <div class="text-center py-10">
             <p class="text-slate-500 text-xs italic">
-              Select a zone on the map to analyze AI confidence levels and
-              demand surges.
+              Select a parking zone on the map for analytics.
             </p>
           </div>
         </div>
@@ -111,8 +121,8 @@
             <input
               id="chat-input"
               type="text"
-              placeholder="Ask AI: e.g. Where is the lowest congestion?"
-              class="w-full bg-slate-800/80 border border-slate-700 rounded-xl p-3 text-xs focus:outline-none focus:border-blue-500 transition-all"
+              placeholder="Ask AI for best route..."
+              class="w-full bg-slate-800/80 border border-slate-700 rounded-xl p-3 text-xs focus:outline-none focus:border-blue-500"
             />
             <button
               onclick="askAI()"
@@ -128,104 +138,99 @@
     <div id="map"></div>
 
     <script>
-      // 1. Initialize Geospatial Environment (Centered on Ahmedabad)
-      const map = L.map("map", { zoomControl: false }).setView(
-        [23.0225, 72.5714],
-        13,
-      );
+      const map = L.map("map", {
+        zoomControl: false,
+        attributionControl: false,
+      }).setView([21.1702, 72.8311], 13);
 
-      // Use Dark Matter tiles for professional "Smart City" aesthetic
       L.tileLayer(
         "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
       ).addTo(map);
 
       let markers = [];
 
-      // 2. Prediction Engine Interface
       async function updatePredictions() {
         const timeVal = document.getElementById("time-slider").value;
         document.getElementById("current-slider-time").innerText =
           `${timeVal.padStart(2, "0")}:00`;
 
-        const res = await fetch(`/api/predict?target_hour=${timeVal}`);
-        const zones = await res.json();
+        try {
+          const res = await fetch(`/api/predict?target_hour=${timeVal}`);
+          const data = await res.json();
 
-        // Clear old layers
-        markers.forEach((m) => map.removeLayer(m));
-        markers = [];
+          markers.forEach((m) => map.removeLayer(m));
+          markers = [];
 
-        zones.forEach((zone) => {
-          // Color coding based on availability
-          const color =
-            zone.availability > 70
-              ? "#22c55e"
-              : zone.availability > 30
-                ? "#f59e0b"
-                : "#ef4444";
+          data.forEach((site) => {
+            const color =
+              site.availability > 70
+                ? "#22c55e"
+                : site.availability > 30
+                  ? "#f59e0b"
+                  : "#ef4444";
+            const circle = L.circle([site.lat, site.lng], {
+              color: color,
+              fillColor: color,
+              fillOpacity: 0.6,
+              radius: 120,
+              weight: 2,
+            }).addTo(map);
 
-          const circle = L.circle([zone.lat, zone.lng], {
-            color: color,
-            fillColor: color,
-            fillOpacity: 0.5,
-            radius: 450,
-            weight: 2,
-          }).addTo(map);
-
-          // OnClick: Detail extraction including Confidence Levels
-          circle.on("click", () => {
-            document.getElementById("info-panel").innerHTML = `
-                        <div class="bg-blue-600/10 border border-blue-500/30 rounded-2xl p-5 shadow-xl">
-                            <h2 class="text-lg font-black text-white">${zone.name}</h2>
-                            <div class="grid grid-cols-2 gap-4 mt-6">
-                                <div>
-                                    <p class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Availability</p>
-                                    <p class="text-3xl font-black text-blue-400">${zone.availability}%</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">AI Confidence</p>
-                                    <p class="text-xl font-bold text-green-400">${zone.confidence}%</p>
-                                </div>
-                            </div>
-                            <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-[10px]">
-                                <span class="text-slate-400 italic">Trend: <b class="text-white capitalize">${zone.trend}</b></span>
-                                <span class="text-slate-500 font-mono">Updated: ${zone.last_updated}</span>
-                            </div>
-                        </div>
-                    `;
+            circle.on("click", () => {
+              document.getElementById("info-panel").innerHTML = `
+                <div class="bg-blue-600/10 border border-blue-500/30 rounded-2xl p-5 shadow-xl">
+                  <h2 class="text-sm font-black text-white uppercase tracking-tight">${site.name}</h2>
+                  <p class="text-[10px] text-slate-400 mt-1">${site.address || "Surat, Gujarat"}</p>
+                  <div class="grid grid-cols-2 gap-4 mt-6">
+                    <div>
+                      <p class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Availability</p>
+                      <p class="text-3xl font-black text-blue-400">${site.availability}%</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">AI Confidence</p>
+                      <p class="text-xl font-bold text-green-400">${site.confidence}%</p>
+                    </div>
+                  </div>
+                  <div class="mt-4 p-3 bg-slate-900/80 rounded-xl border border-white/5">
+                    <div class="flex justify-between text-[10px]">
+                      <span class="text-slate-400">Total Capacity:</span>
+                      <span class="text-white font-mono">${site.total_slots} Slots</span>
+                    </div>
+                  </div>
+                  <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-[10px]">
+                    <span class="text-slate-400 italic font-mono uppercase">${site.last_updated}</span>
+                  </div>
+                </div>
+              `;
+            });
+            markers.push(circle);
           });
-          markers.push(circle);
-        });
+        } catch (err) {
+          console.error("Sync error:", err);
+        }
       }
 
-      // 3. Near Real-Time Polling Logic
-      setInterval(async () => {
-        await updatePredictions();
-        console.log("Stream Sync: " + new Date().toLocaleTimeString());
-      }, 5000); // 5-second frequency ensures "near real-time" accuracy
+      setInterval(updatePredictions, 5000);
 
-      // 4. Decision Support Chat (Simulated RAG)
       async function askAI() {
         const input = document.getElementById("chat-input");
         if (!input.value) return;
-
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: input.value }),
         });
         const data = await res.json();
-
+        const chatBox = `
+          <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 border-l-4 border-l-blue-500">
+            <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">AI Recommendation</p>
+            <p class="text-xs text-slate-200">${data.reply}</p>
+          </div>`;
         document.getElementById("info-panel").innerHTML =
-          `
-                <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 animate-pulse">
-                    <p class="text-[10px] text-blue-400 font-bold uppercase mb-2">AI Recommendation</p>
-                    <p class="text-xs leading-relaxed text-slate-200">${data.reply}</p>
-                </div>
-            ` + document.getElementById("info-panel").innerHTML;
+          chatBox + document.getElementById("info-panel").innerHTML;
         input.value = "";
       }
 
-      // Initial Load
       updatePredictions();
     </script>
   </body>
