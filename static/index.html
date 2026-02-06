@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Smart Parking Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      #map {
+        height: 100vh;
+        width: 100%;
+        z-index: 1;
+      }
+      .glass {
+        background: rgba(17, 24, 39, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-white overflow-hidden">
+    <div
+      class="fixed top-0 left-0 h-full w-96 z-[1000] p-6 flex flex-col pointer-events-none"
+    >
+      <div
+        class="glass h-full w-full rounded-2xl p-6 flex flex-col pointer-events-auto shadow-2xl"
+      >
+        <h1 class="text-2xl font-black text-blue-400 mb-2">🅿️ PARKING.AI</h1>
+        <p class="text-xs text-gray-400 mb-6 uppercase tracking-widest">
+          Smart City Predictor
+        </p>
+
+        <div
+          id="chat-history"
+          class="flex-grow overflow-y-auto space-y-4 mb-4 pr-2 text-sm"
+        >
+          <div class="bg-blue-600/20 p-3 rounded-lg border border-blue-500/30">
+            Hello! Ask me about parking availability or local rules.
+          </div>
+        </div>
+
+        <div class="mt-auto">
+          <div class="flex gap-2">
+            <input
+              id="chat-input"
+              type="text"
+              placeholder="Where to park?"
+              class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500"
+            />
+            <button
+              onclick="sendMessage()"
+              class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg transition-all font-bold"
+            >
+              🚀
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+      // Initialize Map (Ahmedabad Coordinates)
+      const map = L.map("map", { zoomControl: false }).setView(
+        [23.0225, 72.5714],
+        13
+      );
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+      ).addTo(map);
+
+      // Fetch Predictions and Plot
+      async function loadMarkers() {
+        const res = await fetch("/api/predict");
+        const data = await res.json();
+
+        data.forEach((zone) => {
+          const color =
+            zone.availability > 70
+              ? "#22c55e"
+              : zone.availability > 30
+              ? "#f59e0b"
+              : "#ef4444";
+          L.circle([zone.lat, zone.lng], {
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.5,
+            radius: 400,
+          })
+            .addTo(map)
+            .bindPopup(
+              `<b>${zone.name}</b><br>Availability: ${zone.availability}%`
+            );
+        });
+      }
+
+      async function sendMessage() {
+        const input = document.getElementById("chat-input");
+        const history = document.getElementById("chat-history");
+        if (!input.value) return;
+
+        history.innerHTML += `<div class="bg-gray-700/50 p-3 rounded-lg ml-8 text-right text-xs">${input.value}</div>`;
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: input.value }),
+        });
+        const data = await res.json();
+
+        history.innerHTML += `<div class="bg-blue-600/20 p-3 rounded-lg border border-blue-500/30 text-xs">${data.reply}</div>`;
+        input.value = "";
+        history.scrollTop = history.scrollHeight;
+      }
+
+      loadMarkers();
+    </script>
+  </body>
+</html>
