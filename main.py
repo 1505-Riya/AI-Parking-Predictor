@@ -3,8 +3,28 @@ import random
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import os
-
+from pydantic import BaseModel
 app = FastAPI()
+
+# 1. PASTE THE CLASS DEFINITION HERE
+class VisionUpdate(BaseModel):
+    occupied: int
+    total: int
+    confidence: float
+
+# 2. KEEP YOUR AI_STATE HERE
+ai_state = {"total": 60, "occupied": 25, "confidence": 98.4, "availability": 45}
+
+# 3. PASTE THE POST ROUTE HERE
+@app.post("/api/sync_vision")
+async def sync_vision(data: VisionUpdate):
+    global ai_state
+    ai_state["occupied"] = data.occupied
+    ai_state["total"] = data.total
+    ai_state["confidence"] = data.confidence
+    # This math updates your 45% live
+    ai_state["availability"] = round(((data.total - data.occupied) / data.total) * 100, 1)
+    return {"status": "synchronized"}
 
 # Simulated AI State for the live node
 ai_state = {"total": 60, "occupied": 25, "confidence": 98.4}
