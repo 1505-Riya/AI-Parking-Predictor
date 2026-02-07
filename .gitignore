@@ -1,0 +1,10 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore the thousands of images (Keep the code and JSON)
+test/images/
+
+# Ignore environment files
+.env
+.vscode/
