@@ -1,10 +1,10 @@
-# Ignore Python cache
+# Python environment files
+venv/
+env/
 __pycache__/
 *.pyc
-
-# Ignore the thousands of images (Keep the code and JSON)
-test/images/
-
-# Ignore environment files
 .env
-.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
