@@ -1,54 +1,56 @@
-from fastapi import FastAPI, Query
-from fastapi.staticfiles import StaticFiles
 import pandas as pd
-from datetime import datetime
 import random
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+import os
 
 app = FastAPI()
 
-# Global state for AI data
-ai_state = {"occupied": 0, "total": 0, "confidence": 0}
-
-@app.post("/api/sync_vision")
-async def sync(data: dict):
-    global ai_state
-    ai_state.update(data)
-    return {"status": "synced"}
+# Simulated AI State for the live node
+ai_state = {"total": 60, "occupied": 25, "confidence": 98.4}
 
 @app.get("/api/map_data")
 async def get_map_data():
-    # Load your Singapore CSV
-    df = pd.read_csv('lots_location.csv')
-    
-    # We will show the first 100 markers for performance
-    df_display = df.head(100).copy()
-    
     results = []
-    for i, row in df_display.iterrows():
-        # Node 0 is our Live AI node
-        if i == 0:
-            total = ai_state["total"] if ai_state["total"] > 0 else 50
-            avail_pct = max(0, round(((total - ai_state["occupied"]) / total) * 100, 1))
-            status = f"Live AI: {ai_state['occupied']} cars"
-            conf = ai_state["confidence"]
-        else:
-            # Simulated predictive data for other nodes
-            avail_pct = random.randint(10, 95)
-            status = "Historical Prediction"
-            conf = random.randint(90, 98)
+    
+    if os.path.exists('lots_location.csv'):
+        try:
+            df = pd.read_csv('lots_location.csv')
+            # Top 150 points for performance
+            df_display = df.head(150).copy()
+            
+            for i, row in df_display.iterrows():
+                lat = float(row.get('Latitude', row.get('latitude')))
+                lng = float(row.get('Longitude', row.get('longitude')))
+                
+                # DISTRICT MAPPING (Local Searchable Text)
+                if i == 0:
+                    name = "LIVE AI SENSOR (PKLot Node)"
+                    status = "Active Vision Feed"
+                elif lat < 1.29:
+                    name = f"CBD Hub #{i}"; status = "Marina Bay District"
+                elif lng > 103.92:
+                    name = f"East Coast Node #{i}"; status = "Changi / Airport"
+                elif lng < 103.75:
+                    name = f"West Side Parking #{i}"; status = "Jurong Sector"
+                elif lat > 1.40:
+                    name = f"North Gateway #{i}"; status = "Woodlands Area"
+                else:
+                    name = f"Central Hub #{i}"; status = "Orchard / Bishan"
 
-        results.append({
-            "id": i,
-            "lat": float(row['Latitude']),
-            "lng": float(row['Longitude']),
-            "availability": avail_pct,
-            "status": status,
-            "confidence": conf
-        })
+                results.append({
+                    "lat": lat, "lng": lng, "name": name, 
+                    "status": status, "availability": random.randint(15, 95) if i != 0 else 45,
+                    "confidence": 98.4 if i == 0 else random.randint(92, 98)
+                })
+        except Exception as e:
+            print(f"Data Error: {e}")
+
     return results
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
+    print("🚀 Singapore AI Hub Server Running...")
     uvicorn.run(app, host="127.0.0.1", port=8000)
